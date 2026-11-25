@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: mslklogistic
+    runtime: python
+    plan: free
+    buildCommand: "python3 -m py_compile server.py crm/api.py crm/db.py crm/excel.py crm/i18n.py"
+    startCommand: "python3 server.py"
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PYTHON_VERSION
+        value: 3.12.6

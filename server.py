@@ -153,9 +153,11 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     db.init_db()
     port = int(os.environ.get("PORT", "3000"))
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    host = os.environ.get("HOST", "127.0.0.1")
+    server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True
-    print("mslklogistic запущен: http://127.0.0.1:%d" % port)
+    shown_host = "127.0.0.1" if host in ("0.0.0.0", "::") else host
+    print("mslklogistic запущен: http://%s:%d" % (shown_host, port))
     print("Демо-вход: admin@mslklogistic.local / admin123")
     print("Демо-водитель: driver@mslklogistic.local / driver123")
     print("Демо-механик: mechanic@mslklogistic.local / mechanic123")
