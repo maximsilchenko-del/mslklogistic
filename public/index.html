@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mslklogistic — грузоперевозки под контролем</title>
+  <meta name="description" content="mslklogistic — заявки, маршруты, грузы, водители и клиенты в одном рабочем пространстве. Локальная система для грузоперевозок.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235457e5'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='10' fill='url(%23g)'/%3E%3Ccircle cx='8.6' cy='23.4' r='2.8' fill='none' stroke='%23fff' stroke-width='2.6'/%3E%3Ccircle cx='23.6' cy='8.6' r='3.2' fill='%23fff'/%3E%3Cpath d='M12.4 21.9C16.4 21.2 15.2 14.8 19.9 10.8' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ink: #131521;
+      --ink-soft: #474c61;
+      --muted: #7f8499;
+      --line: #e6e8f1;
+      --accent: #5457e5;
+      --accent-strong: #4346d6;
+      --accent-soft: #eef0ff;
+      --bg: #f7f8fc;
+      --success: #0f9f6e;
+      --violet: #8b5cf6;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    a { color: inherit; }
+    ::selection { background: rgba(84, 87, 229, .2); }
+
+    .wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---------------------------------------------------------- nav */
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(247, 248, 252, .82);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(230, 232, 241, .8);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      height: 68px;
+    }
+
+    .logo { display: flex; align-items: center; gap: 11px; font-weight: 750; font-size: 17px; letter-spacing: -.02em; text-decoration: none; }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #5457e5, #8b5cf6);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: 0 8px 18px -10px rgba(84, 87, 229, .9), inset 0 1px 0 rgba(255, 255, 255, .22);
+    }
+
+    .logo-glyph { width: 24px; height: 24px; display: block; }
+
+    .nav-links { display: flex; gap: 24px; margin-left: 12px; }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      text-decoration: none;
+      transition: color .15s;
+    }
+
+    .nav-links a:hover { color: var(--accent-strong); }
+
+    .nav-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 11px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, transform .1s, box-shadow .15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { border-color: #cfd3e4; background: #fbfbff; }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 12px 24px -12px rgba(84, 87, 229, .9);
+    }
+
+    .btn-primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+
+    .btn-lg { padding: 13px 22px; font-size: 15px; border-radius: 12px; }
+
+    .btn-light { background: #fff; border-color: #fff; color: var(--ink); }
+    .btn-light:hover { background: #f1f2ff; border-color: #f1f2ff; }
+
+    /* ---------------------------------------------------------- hero */
+
+    .hero { position: relative; padding: 66px 0 96px; }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -120px 0 auto 0;
+      height: 620px;
+      background:
+        radial-gradient(600px 340px at 18% 10%, rgba(84, 87, 229, .1), transparent 65%),
+        radial-gradient(560px 340px at 88% 0%, rgba(139, 92, 246, .12), transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+      gap: 48px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 12px 6px 8px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      box-shadow: 0 6px 16px -12px rgba(18, 22, 40, .4);
+      margin-bottom: 22px;
+    }
+
+    .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(15, 159, 110, .12); margin-left: 4px; }
+
+    .hero h1 {
+      font-size: clamp(38px, 4.7vw, 60px);
+      line-height: 1.04;
+      letter-spacing: -.035em;
+      font-weight: 760;
+      max-width: 620px;
+    }
+
+    .grad-text {
+      background: linear-gradient(105deg, #5457e5 10%, #8b5cf6 60%, #4f8df7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-sub {
+      margin-top: 22px;
+      max-width: 500px;
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--ink-soft);
+    }
+
+    .hero-actions { display: flex; gap: 11px; flex-wrap: wrap; margin-top: 30px; }
+
+    .hero-stats {
+      display: flex;
+      gap: 0;
+      margin-top: 38px;
+      max-width: 520px;
+    }
+
+    .hero-stat { padding-right: 26px; margin-right: 26px; border-right: 1px solid var(--line); }
+    .hero-stat:last-child { border: 0; margin-right: 0; padding-right: 0; }
+    .hero-stat b { display: block; font-size: 22px; letter-spacing: -.02em; font-weight: 750; }
+    .hero-stat span { font-size: 12.5px; color: var(--muted); }
+
+    /* ---------------------------------------------------------- app mockup */
+
+    .mock-wrap { position: relative; }
+
+    .window {
+      position: relative;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 40px 90px -40px rgba(30, 34, 70, .45), 0 10px 30px -20px rgba(30, 34, 70, .2);
+      overflow: hidden;
+      transform: perspective(1600px) rotateY(-4deg) rotateX(1deg);
+      transition: transform .5s cubic-bezier(.2, .8, .25, 1);
+    }
+
+    .window:hover { transform: perspective(1600px) rotateY(0deg) rotateX(0deg); }
+
+    .win-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfbfe;
+    }
+
+    .win-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .win-dot.r { background: #f5b6b6; }
+    .win-dot.a { background: #f3d39b; }
+    .win-dot.g { background: #a7dfc3; }
+    .win-url {
+      margin-left: 10px;
+      font-size: 10.5px;
+      color: var(--muted);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 2px 10px;
+    }
+
+    .win-body { display: grid; grid-template-columns: 148px minmax(0, 1fr); min-height: 388px; }
+
+    .win-side { border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; background: #fdfdff; }
+
+    .win-brand { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 750; padding: 2px 8px 14px; letter-spacing: -.01em; white-space: nowrap; }
+    .win-brand i { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, #5457e5, #8b5cf6); display: grid; place-items: center; color: #fff; font-style: normal; font-size: 10px; font-weight: 800; }
+    .win-brand .win-glyph { width: 15px; height: 15px; display: block; }
+
+    .win-nav { display: flex; flex-direction: column; gap: 2px; }
+    .win-nav span { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 7px; font-size: 10.5px; font-weight: 550; color: var(--ink-soft); }
+    .win-nav span::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: #e3e5f1; flex: none; }
+    .win-nav span.on { background: var(--accent-soft); color: var(--accent-strong); }
+    .win-nav span.on::before { background: var(--accent); }
+
+    .win-user { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px; border-top: 1px solid var(--line); }
+    .win-ava { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 8.5px; font-weight: 700; display: grid; place-items: center; flex: none; }
+    .win-user b { display: block; font-size: 9.5px; font-weight: 650; }
+    .win-user small { display: block; font-size: 8.5px; color: var(--muted); }
+
+    .win-main { padding: 16px 18px; min-width: 0; }
+
+    .win-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .win-head b { font-size: 15px; letter-spacing: -.02em; }
+    .win-btn { font-size: 9.5px; font-weight: 600; color: #fff; background: var(--accent); padding: 5px 9px; border-radius: 7px; }
+
+    .win-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .win-kpi { border: 1px solid var(--line); border-radius: 9px; padding: 8px 9px; background: #fff; }
+    .win-kpi span { display: block; font-size: 8px; color: var(--muted); }
+    .win-kpi b { display: block; font-size: 12px; font-weight: 750; letter-spacing: -.02em; margin-top: 2px; }
+    .win-kpi em { font-style: normal; font-size: 8px; color: var(--success); font-weight: 650; }
+
+    .win-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .win-col { background: #f7f8fc; border: 1px solid #edeff6; border-radius: 9px; padding: 7px; }
+    .win-col-head { display: flex; align-items: center; gap: 4px; font-size: 8.5px; font-weight: 700; color: var(--ink-soft); padding: 1px 2px 6px; }
+    .win-col-head i { width: 6px; height: 6px; border-radius: 50%; font-style: normal; }
+
+    .win-card { background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(18, 22, 40, .03); }
+    .win-card span { display: block; font-size: 7.5px; color: var(--muted); }
+    .win-card b { display: block; font-size: 9px; font-weight: 650; line-height: 1.3; margin: 2px 0 5px; }
+    .win-card em { font-style: normal; font-size: 9px; font-weight: 750; }
+    .win-card.hot { border-color: rgba(84, 87, 229, .35); box-shadow: 0 6px 14px -10px rgba(84, 87, 229, .6); }
+
+    .float-card {
+      position: absolute;
+      z-index: 3;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 10px 14px;
+      box-shadow: 0 20px 40px -22px rgba(30, 34, 70, .5);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: floaty 6s ease-in-out infinite;
+      white-space: nowrap;
+    }
+
+    .float-card .mini-check { width: 22px; height: 22px; border-radius: 50%; background: #e8f7f0; color: var(--success); display: grid; place-items: center; font-size: 11px; flex: none; }
+    .float-card small { display: block; font-size: 10px; color: var(--muted); font-weight: 500; }
+
+    .float-1 { right: -34px; top: -28px; }
+    .float-2 { left: 22px; bottom: -52px; animation-delay: -3s; }
+    .float-2 .delta { color: var(--success); font-weight: 750; }
+
+    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+    /* ---------------------------------------------------------- sections */
+
+    .section { padding: 74px 0; }
+    .section-head { max-width: 640px; margin: 0 auto 44px; text-align: center; }
+    .kicker { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-strong); margin-bottom: 12px; }
+    .section-head h2 { font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -.03em; line-height: 1.12; font-weight: 740; }
+    .section-head p { color: var(--muted); font-size: 15.5px; margin-top: 14px; }
+
+    .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+
+    .feature {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+
+    .feature:hover { transform: translateY(-3px); box-shadow: 0 24px 50px -30px rgba(30, 34, 70, .35); border-color: #dfe2ef; }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .feature:nth-child(2) .feature-icon { background: #eaf2ff; color: #2f6fe4; }
+    .feature:nth-child(3) .feature-icon { background: #fdf3e3; color: #b5760f; }
+    .feature:nth-child(4) .feature-icon { background: #f2edff; color: #7c4ddb; }
+    .feature:nth-child(5) .feature-icon { background: #e8f7f0; color: var(--success); }
+    .feature:nth-child(6) .feature-icon { background: #eef4f8; color: #4b7a94; }
+
+    .feature h3 { font-size: 16.5px; font-weight: 680; letter-spacing: -.015em; margin-bottom: 8px; }
+    .feature p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+
+    /* pipeline block */
+
+    .pipe-block {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+      gap: 60px;
+      align-items: center;
+    }
+
+    .pipe-text .kicker { text-align: left; }
+    .pipe-text h2 { font-size: clamp(28px, 3.2vw, 38px); letter-spacing: -.03em; line-height: 1.14; font-weight: 740; }
+    .pipe-text > p { color: var(--muted); font-size: 15.5px; margin-top: 16px; max-width: 430px; }
+
+    .check-list { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 11px; }
+    .check-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--ink-soft); }
+    .check-list .tick { width: 20px; height: 20px; border-radius: 50%; background: #e8f7f0; color: var(--success); display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; margin-top: 1px; }
+
+    .pipe-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 30px 70px -50px rgba(30, 34, 70, .5);
+      padding: 24px;
+    }
+
+    .pipe-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+    .pipe-card-head b { font-size: 14px; font-weight: 680; }
+    .pipe-card-head span { font-size: 12px; color: var(--muted); }
+
+    .pipe-line { display: grid; grid-template-columns: 122px minmax(0, 1fr) 92px; gap: 14px; align-items: center; padding: 8px 0; }
+    .pipe-line span { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+    .pipe-line i { width: 7px; height: 7px; border-radius: 50%; flex: none; font-style: normal; }
+    .pipe-line .bar { height: 8px; border-radius: 999px; background: #f1f2f7; overflow: hidden; }
+    .pipe-line .bar b { display: block; height: 100%; border-radius: 999px; }
+    .pipe-line em { font-style: normal; text-align: right; font-size: 12.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+    .pipe-foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; font-size: 12.5px; color: var(--muted); }
+    .pipe-foot b { color: var(--ink); font-size: 15px; }
+
+    /* roles */
+
+    .roles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+
+    .role-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 24px 20px; }
+    .role-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; margin-bottom: 16px; }
+    .role-badge.admin { background: #f2edff; color: #7c4ddb; }
+    .role-badge.head { background: #eaf2ff; color: #2f6fe4; }
+    .role-badge.manager { background: #eef1f7; color: #5c6b8a; }
+    .role-badge.driver { background: #e6f4fb; color: #2a6f8e; }
+    .role-badge.mechanic { background: #fdf3e3; color: #a96a0b; }
+    .role-card h3 { font-size: 18px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 6px; }
+    .role-card > p { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .role-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+    .role-list li { font-size: 13px; color: var(--ink-soft); padding-left: 18px; position: relative; line-height: 1.45; }
+    .role-list li::before { content: ""; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #ccd0e2; }
+
+    /* local / privacy */
+
+    .band {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      padding: 46px 48px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+      gap: 40px;
+      align-items: center;
+      color: #fff;
+      background:
+        radial-gradient(520px 300px at 92% 0%, rgba(139, 92, 246, .5), transparent 65%),
+        radial-gradient(420px 300px at 0% 100%, rgba(79, 141, 247, .35), transparent 60%),
+        linear-gradient(150deg, #191a35, #2c2e6b 60%, #3f3fa8);
+    }
+
+    .band h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.03em; line-height: 1.15; font-weight: 740; max-width: 480px; }
+    .band p { font-size: 14.5px; color: rgba(255, 255, 255, .72); margin-top: 14px; max-width: 460px; line-height: 1.6; }
+    .band .demo-title { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255, 255, 255, .55); font-weight: 700; margin-bottom: 12px; }
+    .demo-list { display: grid; gap: 9px; }
+    .demo-item { display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .13); border-radius: 12px; padding: 11px 14px; }
+    .demo-item b { font-size: 12.5px; font-weight: 650; min-width: 104px; }
+    .demo-item code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: rgba(255, 255, 255, .78); }
+    .band-actions { margin-top: 22px; }
+
+    .band .band-side { display: flex; flex-direction: column; gap: 0; }
+
+    /* footer */
+
+    .footer { border-top: 1px solid var(--line); padding: 34px 0 44px; }
+    .footer-inner { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .footer-text { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+    .footer-links { display: flex; gap: 18px; }
+    .footer-links a { font-size: 12.5px; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--ink); }
+
+    /* ---------------------------------------------------------- responsive */
+
+    @media (max-width: 1060px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 56px; }
+      .hero-sub { max-width: 560px; }
+      .mock-wrap { max-width: 640px; margin: 0 auto; width: 100%; }
+      .float-1 { right: 4px; }
+      .float-2 { left: 4px; }
+      .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .pipe-block { grid-template-columns: 1fr; gap: 36px; }
+      .band { grid-template-columns: 1fr; gap: 30px; padding: 38px 30px; }
+      .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 860px) {
+      .nav-links { display: none; }
+      .roles { grid-template-columns: 1fr; }
+      .hero { padding-top: 44px; }
+    }
+
+    @media (max-width: 680px) {
+      .features { grid-template-columns: 1fr; }
+      .nav-actions .btn:not(.btn-primary) { display: none; }
+      .hero-stats { gap: 0; }
+      .hero-stat { flex: 1 1 0; min-width: 0; padding-right: 12px; margin-right: 12px; border-right: 1px solid var(--line); }
+      .hero-stat:last-child { border: 0; margin-right: 0; padding-right: 0; }
+      .window { transform: none; }
+      .win-body { grid-template-columns: 1fr; }
+      .win-side { display: none; }
+      .float-card { display: none; }
+      .band { padding: 30px 22px; border-radius: 20px; }
+      .demo-item { flex-wrap: wrap; gap: 4px 10px; }
+      .demo-item b { min-width: 0; }
+      .footer-text { margin-left: 0; width: 100%; }
+      .section { padding: 56px 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="/"><span class="logo-mark"><svg class="logo-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="8.6" cy="23.4" r="2.8" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="23.6" cy="8.6" r="3.2" fill="currentColor"/><path d="M12.4 21.9C16.4 21.2 15.2 14.8 19.9 10.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span> mslklogistic</a>
+      <nav class="nav-links">
+        <a href="#features">Возможности</a>
+        <a href="#pipeline">Рейсы</a>
+        <a href="#roles">Роли</a>
+        <a href="#demo">Демо</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn" href="http://127.0.0.1:3000/app/#/deals">Войти</a>
+        <a class="btn btn-primary" href="http://127.0.0.1:3000/app/#/deals">Открыть демо</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow"><span class="brand-dot"></span> Логистика и грузоперевозки</div>
+          <h1>Каждый рейс —<br>от заявки до<br><span class="grad-text">выгрузки</span></h1>
+          <p class="hero-sub">Заявки, маршруты, грузы, водители и клиенты в одном рабочем пространстве. Считайте ставку, ведите машину в пути и закрывайте рейс — без таблиц и потерянных договорённостей.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-lg" href="http://127.0.0.1:3000/app/#/deals">Открыть демо →</a>
+            <a class="btn btn-lg" href="#features">Посмотреть возможности</a>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat"><b>6</b><span>этапов рейса</span></div>
+            <div class="hero-stat"><b>4</b><span>типа перевозок</span></div>
+            <div class="hero-stat"><b>0 ₽</b><span>локальный запуск</span></div>
+          </div>
+        </div>
+
+        <div class="mock-wrap">
+          <div class="float-card float-1">
+            <span class="mini-check">✓</span>
+            <div>Рейс доставлен<small>Москва → Казань · 84 000 ₽</small></div>
+          </div>
+          <div class="float-card float-2">
+            <span class="mini-check" style="background:#eef0ff;color:#5457e5">↑</span>
+            <div>Выручка за месяц<small class="delta">+18% к прошлому</small></div>
+          </div>
+
+          <div class="window">
+            <div class="win-bar">
+              <span class="win-dot r"></span><span class="win-dot a"></span><span class="win-dot g"></span>
+              <span class="win-url">mslklogistic.local/app</span>
+            </div>
+            <div class="win-body">
+              <aside class="win-side">
+                <div class="win-brand"><i><svg class="win-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="8.6" cy="23.4" r="2.8" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="23.6" cy="8.6" r="3.2" fill="currentColor"/><path d="M12.4 21.9C16.4 21.2 15.2 14.8 19.9 10.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></i> mslklogistic</div>
+                <div class="win-nav">
+                  <span>Главное меню</span>
+                  <span class="on">Перевозки</span>
+                  <span>Клиенты</span>
+                  <span>Задачи</span>
+                </div>
+                <div class="win-user">
+                  <span class="win-ava">ОК</span>
+                  <div><b>Ольга Ким</b><small>Менеджер</small></div>
+                </div>
+              </aside>
+              <div class="win-main">
+                <div class="win-head"><b>Перевозки</b><span class="win-btn">+ Рейс</span></div>
+                <div class="win-kpis">
+                  <div class="win-kpi"><span>Выручка</span><b>2,84 млн ₽</b><em>+18%</em></div>
+                  <div class="win-kpi"><span>В работе</span><b>1,39 млн ₽</b><em>9 рейсов</em></div>
+                  <div class="win-kpi"><span>Клиенты</span><b>10</b><em>+3 за месяц</em></div>
+                </div>
+                <div class="win-board">
+                  <div class="win-col">
+                    <div class="win-col-head"><i style="background:#7c8db5"></i>Заявки · 2</div>
+                    <div class="win-card"><span>ТехноПарк</span><b>Москва → Тула</b><em>38 000 ₽</em></div>
+                    <div class="win-card"><span>МедЛайн</span><b>Москва → Ярославль</b><em>56 000 ₽</em></div>
+                  </div>
+                  <div class="win-col">
+                    <div class="win-col-head"><i style="background:#b5760f"></i>В пути · 2</div>
+                    <div class="win-card hot"><span>СтройМост</span><b>Москва → Новосибирск</b><em>310 000 ₽</em></div>
+                    <div class="win-card"><span>Атлас Ритейл</span><b>Тверь → Москва</b><em>115 000 ₽</em></div>
+                  </div>
+                  <div class="win-col">
+                    <div class="win-col-head"><i style="background:#0f8f63"></i>Доставлено · 1</div>
+                    <div class="win-card"><span>Молочный путь</span><b>Москва → Казань</b><em>84 000 ₽</em></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">Возможности</div>
+          <h2>Всё, что нужно транспортной компании</h2>
+          <p>Никаких модулей за доплату: рейсы, маршруты, грузы, клиенты, команда и аналитика уже внутри.</p>
+        </div>
+        <div class="features">
+          <article class="feature">
+            <span class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+            </span>
+            <h3>Канбан рейсов</h3>
+            <p>Новые заявки, расчёт, подтверждение, путь и доставка. Перетаскивайте карточки — этап сохраняется сразу, суммы пересчитываются.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <h3>Маршрут и груз</h3>
+            <p>Города отправления и назначения, тип перевозки — FTL, LTL, реф или контейнер, вес, объём и даты погрузки и доставки.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </span>
+            <h3>Водители и машины</h3>
+            <p>В карточке рейса — водитель и транспорт. Ответственный менеджер видит, кто едет, на чём и когда быть на выгрузке.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></svg>
+            </span>
+            <h3>Клиенты и реквизиты</h3>
+            <p>Карточка компании с ИНН, контактами логистов, адресом и заметками. Все перевозки клиента — в одном месте.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
+            </span>
+            <h3>Задачи и сроки</h3>
+            <p>Не забыть подать машину, согласовать ставку или получить документы. Приоритеты, дедлайны и подсветка просрочек.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            </span>
+            <h3>Данные под контролем</h3>
+            <p>Python и SQLite на вашем компьютере: без облака, подписок и внешних зависимостей. Данные не покидают машину.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="pipeline" style="padding-top:20px">
+      <div class="wrap pipe-block">
+        <div class="pipe-text">
+          <div class="kicker">Движение рейса</div>
+          <h2>Каждый этап показывает деньги, а не только статус</h2>
+          <p>Сумма по этапам, количество рейсов и общая загрузка считаются автоматически. Руководитель видит картину целиком, менеджер — свои перевозки.</p>
+          <ul class="check-list">
+            <li><span class="tick">✓</span> Перетаскивание карточек сохраняет этап сразу</li>
+            <li><span class="tick">✓</span> Отменённые рейсы не искажают активную загрузку</li>
+            <li><span class="tick">✓</span> Даты погрузки и доставки — под контролем</li>
+            <li><span class="tick">✓</span> Выручка и лидеры команды в главном меню</li>
+          </ul>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-head">
+            <b>Перевозки в работе</b>
+            <span>1 391 000 ₽ · 9 рейсов</span>
+          </div>
+          <div class="pipe-line"><span><i style="background:#7c8db5"></i>Новые заявки</span><span class="bar"><b style="width:41%;background:#7c8db5"></b></span><em>194 000 ₽</em></div>
+          <div class="pipe-line"><span><i style="background:#2f6fe4"></i>Расчёт</span><span class="bar"><b style="width:64%;background:#2f6fe4"></b></span><em>301 000 ₽</em></div>
+          <div class="pipe-line"><span><i style="background:#7c4ddb"></i>Подтверждено</span><span class="bar"><b style="width:100%;background:#7c4ddb"></b></span><em>471 000 ₽</em></div>
+          <div class="pipe-line"><span><i style="background:#b5760f"></i>В пути</span><span class="bar"><b style="width:90%;background:#b5760f"></b></span><em>425 000 ₽</em></div>
+          <div class="pipe-line"><span><i style="background:#0f8f63"></i>Доставлено</span><span class="bar"><b style="width:75%;background:#0f8f63"></b></span><em>354 000 ₽</em></div>
+          <div class="pipe-foot"><span>Средний чек рейса</span><b>154 600 ₽</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="roles" style="padding-top:20px">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">Доступ</div>
+          <h2>У каждого — своя зона ответственности</h2>
+          <p>Права проверяются на сервере, а не только скрываются в интерфейсе.</p>
+        </div>
+        <div class="roles">
+          <article class="role-card">
+            <span class="role-badge admin">● Администратор</span>
+            <h3>Полный доступ</h3>
+            <p>Настраивает команду и отвечает за систему.</p>
+            <ul class="role-list">
+              <li>Все клиенты, перевозки и задачи</li>
+              <li>Создание и роли пользователей</li>
+              <li>Блокировка и удаление учётных записей</li>
+            </ul>
+          </article>
+          <article class="role-card">
+            <span class="role-badge head">● Руководитель</span>
+            <h3>Вся команда</h3>
+            <p>Видит общую картину перевозок и распределяет работу.</p>
+            <ul class="role-list">
+              <li>Перевозки и клиенты всех менеджеров</li>
+              <li>Назначение ответственных</li>
+              <li>Задачи и лидеры по выручке</li>
+            </ul>
+          </article>
+          <article class="role-card">
+            <span class="role-badge manager">● Менеджер</span>
+            <h3>Своя база</h3>
+            <p>Сосредоточен на своих клиентах и рейсах.</p>
+            <ul class="role-list">
+              <li>Только свои клиенты и перевозки</li>
+              <li>Личные задачи с дедлайнами</li>
+              <li>Не видит чужие данные и команду</li>
+            </ul>
+          </article>
+          <article class="role-card">
+            <span class="role-badge driver">● Водитель</span>
+            <h3>Только рейс</h3>
+            <p>Видит свой маршрут и добавляет документы с дороги.</p>
+            <ul class="role-list">
+              <li>Свой рейс без сумм и оплаты</li>
+              <li>Загрузка фото документов</li>
+              <li>Заявки на ремонт механику</li>
+            </ul>
+          </article>
+          <article class="role-card">
+            <span class="role-badge mechanic">● Механик</span>
+            <h3>Автопарк и ремонт</h3>
+            <p>Следит за машинами и обрабатывает заявки водителей.</p>
+            <ul class="role-list">
+              <li>Все машины автопарка</li>
+              <li>Заявки на ремонт от водителей</li>
+              <li>Статусы работ и закрытие заявок</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="demo" style="padding-top:28px">
+      <div class="wrap">
+        <div class="band">
+          <div>
+            <h2>Попробуйте систему прямо сейчас</h2>
+            <p>Демо-данные уже загружены: 10 клиентов, 14 рейсов на разных этапах, маршруты по России, автопарк, заявки на ремонт и команда из шести человек. Войдите под любой ролью и сравните, что видно каждому.</p>
+            <div class="band-actions">
+              <a class="btn btn-light btn-lg" href="http://127.0.0.1:3000/app/#/deals">Открыть рабочее пространство →</a>
+            </div>
+          </div>
+          <div class="band-side">
+            <p class="demo-title">Демо-доступы</p>
+            <div class="demo-list">
+              <div class="demo-item"><b>Администратор</b><code>admin@mslklogistic.local</code><code>admin123</code></div>
+              <div class="demo-item"><b>Руководитель</b><code>head@mslklogistic.local</code><code>head123</code></div>
+              <div class="demo-item"><b>Менеджер</b><code>manager@mslklogistic.local</code><code>manager123</code></div>
+              <div class="demo-item"><b>Водитель</b><code>driver@mslklogistic.local</code><code>driver123</code></div>
+              <div class="demo-item"><b>Механик</b><code>mechanic@mslklogistic.local</code><code>mechanic123</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <a class="logo" href="/"><span class="logo-mark"><svg class="logo-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="8.6" cy="23.4" r="2.8" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="23.6" cy="8.6" r="3.2" fill="currentColor"/><path d="M12.4 21.9C16.4 21.2 15.2 14.8 19.9 10.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span> mslklogistic</a>
+      <div class="footer-links">
+        <a href="http://127.0.0.1:3000/app/#/deals">Войти в систему</a>
+        <a href="#features">Возможности</a>
+        <a href="#roles">Роли</a>
+      </div>
+      <span class="footer-text">Локальная демонстрационная версия · данные хранятся на этом компьютере</span>
+    </div>
+  </footer>
+</body>
+</html>
